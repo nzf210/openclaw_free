@@ -34,7 +34,7 @@ services:
     volumes:
       - ./litellm/config.yaml:/app/config.yaml
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=${DATABASE_URL1}
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
       - LITELLM_SALT_KEY=${LITELLM_SALT_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
