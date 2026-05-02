@@ -9,6 +9,14 @@ It is optimized for complex projects (like Scala) using **Gemini 1.5 Pro** via *
 - A **Gemini API Key** (Free from [Google AI Studio](https://aistudio.google.com/)).
 - A Bot Token from Telegram, Discord, or Slack.
 
+## Memory Optimization (4GB Cap)
+This stack is configured to stay within a **4GB RAM limit** even if the host has more. 
+- **Limits**: Containers are restricted via `deploy.resources.limits.memory`.
+- **Tuning**: PostgreSQL buffers and Redis max-memory are optimized for a low footprint.
+- **Concurrency**: LiteLLM is limited to 2 workers to save memory.
+
+---
+
 ## Setup Instructions
 
 1. **Configure Environment Variables**
