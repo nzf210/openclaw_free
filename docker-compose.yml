@@ -54,7 +54,7 @@ services:
     container_name: openhands_agent
     restart: always
     ports:
-      - "3000:3000"
+      - "2999:3000"
     environment:
       - WORKSPACE_BASE=${WORKSPACE_BASE:-./workspace}
       - SANDBOX_RUNTIME_CONTAINER_IMAGE=ghcr.io/all-hands-ai/runtime:main
