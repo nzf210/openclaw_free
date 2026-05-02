@@ -1,17 +1,13 @@
-# AI Software Engineer VPS Stack (GPT4Free Edition)
+# AI Software Engineer VPS Stack (LiteLLM + Gemini Edition)
 
 This project provisions an AI agent stack designed to run on a VPS using Docker. 
-It integrates the following services:
-- **OpenHands**: The core AI Software Engineer agent.
-- **OpenClaw**: A gateway to interface with messaging platforms (Telegram, Discord, Slack).
-- **GPT4Free (g4f)**: A reverse-proxy container that provides an OpenAI-compatible API without needing an API key (by scraping free web providers).
-- **PostgreSQL (pgvector)**: Persistent storage and vector database for RAG/memory.
-- **Redis**: Caching and background queueing.
+It is optimized for complex projects (like Scala) using **Gemini 1.5 Pro** via **LiteLLM**.
 
 ## Prerequisites
 - Docker and Docker Compose installed on your VPS.
 - A GitHub Personal Access Token (PAT).
-- A Bot Token from Telegram (via BotFather), Discord, or Slack.
+- A **Gemini API Key** (Free from [Google AI Studio](https://aistudio.google.com/)).
+- A Bot Token from Telegram, Discord, or Slack.
 
 ## Setup Instructions
 
@@ -19,7 +15,8 @@ It integrates the following services:
    Copy the example environment file and fill in your credentials.
    ```bash
    cp .env.example .env
-   # Edit .env with your favorite editor (e.g., nano .env)
+   # Edit .env with your actual Gemini API Key and Bot Token
+   nano .env
    ```
 
 2. **Start the Stack**
@@ -27,34 +24,19 @@ It integrates the following services:
    ```bash
    docker-compose up -d
    ```
-   This will start PostgreSQL, Redis, g4f, OpenHands, and OpenClaw. 
 
-3. **Accessing the g4f Web UI**
-   You can access the GPT4Free Web UI at `http://<your-vps-ip>:8080/chat/` to test models manually. The internal API runs on port 1337 and is already configured for OpenHands.
+3. **Verify Connection**
+   You can check the logs of LiteLLM to ensure it's connecting to Gemini correctly:
+   ```bash
+   docker-compose logs -f litellm
+   ```
 
-## GitHub Workflow & Source of Truth
+## Why Gemini 1.5 Pro?
+For complex Scala projects, Gemini 1.5 Pro offers:
+- **Massive Context Window**: Up to 2 million tokens, allowing the agent to read your entire codebase at once.
+- **Stability**: Much more reliable than web-scraping alternatives.
+- **Free Tier**: High-quality reasoning available without cost for individual developers.
 
-**OpenHands** acts as an autonomous developer. To maintain a clean workflow:
-
-1. Provide your `GITHUB_TOKEN` in the `.env` file.
-2. The `workspace` directory (mounted at `./workspace`) is available to OpenHands.
-3. When giving a task via Telegram/Discord, instruct OpenHands to:
-   - Clone your target repository into the workspace.
-   - Create a new branch for the feature/fix.
-   - Write and test the code within its Sandbox.
-   - Commit the changes and push the branch to GitHub.
-   - (Optional) Open a Pull Request using the GitHub CLI or API.
-
-GitHub remains the absolute source of truth for your source code, while the VPS and Docker Sandbox serve strictly as the agent's execution and testing environment.
-
-## Troubleshooting & Warnings
-
-> **WARNING**: GPT4Free relies on web scraping. If free providers update their systems, block your IP, or experience high traffic, the API will fail or become very slow. 
-
-- **Checking g4f Logs**: 
-  If OpenHands stops responding or errors out during reasoning, check if `g4f` is failing to fetch responses:
-  ```bash
-  docker-compose logs -f g4f
-  ```
-- **OpenHands Sandbox Access**:
-  OpenHands relies on access to the Docker socket to spawn sub-containers for executing generated code safely. Make sure `/var/run/docker.sock` permissions allow the container to use it.
+## Troubleshooting
+- **Sandbox Performance**: If sbt/JDK is missing in the sandbox, you can ask OpenHands to install it, or we can customize the runtime image in `docker-compose.yml`.
+- **Port Conflict**: OpenClaw runs on port `8080`, and LiteLLM on `4000`.

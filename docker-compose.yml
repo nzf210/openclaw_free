@@ -1,18 +1,27 @@
 services:
   # ----------------------------------------------------
-  # GPT4Free Proxy - Free OpenAI-Compatible API
+  # LiteLLM Proxy - Unified API Gateway
   # ----------------------------------------------------
-  g4f:
-    image: hlohaus789/g4f:latest
-    container_name: g4f_api
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: litellm_proxy
     restart: always
     ports:
-      - "8080:8080"
-      - "1337:1337"
+      - "4000:4000"
     volumes:
-      - ./har_and_cookies:/app/har_and_cookies
-      - ./generated_media:/app/generated_media
-    shm_size: '2g'
+      - ./litellm/config.yaml:/app/config.yaml
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      - LITELLM_SALT_KEY=${LITELLM_SALT_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    command: [ "--config", "/app/config.yaml", "--port", "4000", "--num_workers", "8" ]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   # ----------------------------------------------------
   # OpenHands Agent - AI Software Engineer
@@ -27,34 +36,29 @@ services:
       - WORKSPACE_BASE=${WORKSPACE_BASE:-./workspace}
       - SANDBOX_RUNTIME_CONTAINER_IMAGE=ghcr.io/all-hands-ai/runtime:main
       - LOG_ALL_EVENTS=true
-      - LLM_API_KEY=${LLM_API_KEY}
-      - LLM_BASE_URL=${LLM_BASE_URL}
-      - LLM_MODEL=${LLM_MODEL}
+      - LLM_API_KEY=${LITELLM_MASTER_KEY}
+      - LLM_BASE_URL=http://litellm:4000
+      - LLM_MODEL=${LLM_MODEL:-gemini/gemini-1.5-pro}
       - GITHUB_TOKEN=${GITHUB_TOKEN}
     volumes:
-      # Required to spawn sibling sandbox containers
       - /var/run/docker.sock:/var/run/docker.sock
-      # Mount local workspace
       - ${WORKSPACE_BASE:-./workspace}:/opt/workspace_base
-      # Store state
       - openhands-state:/.openhands-state
     depends_on:
-      - g4f
+      - litellm
 
   # ----------------------------------------------------
   # OpenClaw Gateway - Messenger Integration
   # ----------------------------------------------------
   openclaw:
-    # Use official image if available, otherwise build from source if needed.
-    # We will assume a standard containerized setup for OpenClaw.
     image: ghcr.io/openclaw/openclaw:latest
     container_name: openclaw_gateway
     restart: always
     ports:
-      - "8081:8080" # Mapped to 8081 to avoid conflict with g4f
+      - "8080:8080"
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - OPENHANDS_API_URL=${OPENHANDS_API_URL}
+      - OPENHANDS_API_URL=http://openhands:3000
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
