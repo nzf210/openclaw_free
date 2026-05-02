@@ -1,5 +1,22 @@
 services:
   # ----------------------------------------------------
+  # OAuth Adapter - ChatGPT Web Login to Local API
+  # ----------------------------------------------------
+  oauth:
+    # Menggunakan lanqian528/chat2api sebagai default oauth adapter populer
+    image: lanqian528/chat2api:latest
+    container_name: oauth_adapter
+    restart: always
+    ports:
+      - "8082:8080" # Web UI untuk login akun
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    volumes:
+      - ./oauth_data:/app/data
+
+  # ----------------------------------------------------
   # LiteLLM Proxy - Unified API Gateway
   # ----------------------------------------------------
   litellm:
@@ -16,7 +33,6 @@ services:
       - LITELLM_SALT_KEY=${LITELLM_SALT_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-    # Optimized: Reduced workers to save RAM
     command: [ "--config", "/app/config.yaml", "--port", "4000", "--num_workers", "2" ]
     deploy:
       resources:
@@ -27,6 +43,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      oauth:
+        condition: service_started
 
   # ----------------------------------------------------
   # OpenHands Agent - AI Software Engineer
@@ -43,12 +61,12 @@ services:
       - LOG_ALL_EVENTS=true
       - LLM_API_KEY=${LITELLM_MASTER_KEY}
       - LLM_BASE_URL=http://litellm:4000
-      - LLM_MODEL=${LLM_MODEL:-gemini/gemini-1.5-pro}
+      - LLM_MODEL=${LLM_MODEL:-openai/gpt-4o} # Menggunakan OpenAI model dari adapter
       - GITHUB_TOKEN=${GITHUB_TOKEN}
     deploy:
       resources:
         limits:
-          memory: 1536M # Allocated more for reasoning/sandbox
+          memory: 1280M # Dialokasikan sedikit lebih kecil agar muat adapter
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${WORKSPACE_BASE:-./workspace}:/opt/workspace_base
@@ -88,7 +106,6 @@ services:
     image: pgvector/pgvector:pg16
     container_name: ai_postgres
     restart: always
-    # Optimized: Low memory footprint settings
     command: ["postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=20", "-c", "work_mem=4MB"]
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
@@ -123,7 +140,6 @@ services:
           memory: 256M
     volumes:
       - redisdata:/data
-    # Optimized: Max memory limit and eviction policy
     command: ["redis-server", "--maxmemory", "200mb", "--maxmemory-policy", "allkeys-lru", "--appendonly", "yes"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
