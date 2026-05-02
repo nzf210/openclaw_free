@@ -1,25 +1,34 @@
 # AI Software Engineer Stack (OpenClaw + Pi Agent)
 
 This project provisions an AI agent stack designed to run on a VPS or Local Machine using Docker. 
-The new architecture uses an **embedded Pi Coding Agent** within the **OpenClaw Gateway**, managing its own **sandbox containers** for code execution.
+The architecture uses an **embedded Pi Coding Agent** within the **OpenClaw Gateway**, managing its own **sandbox containers** for code execution.
 
-## Architecture
-- **OpenClaw Gateway**: Main container for messaging (Telegram, Discord, Slack).
-- **Pi Coding Agent**: Embedded agent plugin for automated software engineering.
-- **Sandbox Containers**: Dynamic Docker containers for secure code execution.
-- **Workspace**: Local `workspace/` directory mounted into the agent system.
+## Multi-Model Support (Device Pairing)
+OpenClaw allows you to "pair" your existing web accounts (ChatGPT, Gemini, etc.) via a browser session, enabling you to use premium models for free.
 
-## Prerequisites
-- Docker and Docker Compose installed.
-- A Telegram Bot Token (or Discord/Slack).
-- OpenAI / Gemini API Key (for fallback).
-- A ChatGPT account (for primary OAuth pairing).
+### 1. Pairing a New Model
+Execute the following command inside the gateway container to pair a provider:
+```bash
+docker exec -it openclaw_gateway openclaw device-pair <provider>
+```
 
-## Memory Optimization (4GB Cap)
-This stack is configured to stay within a **4GB RAM limit**:
-- **OpenClaw**: Allocated **2GB** to handle plugin staging and browser sessions.
-- **PostgreSQL**: Optimized with low shared buffers for a small footprint.
-- **Redis**: Limited to 200MB max memory.
+**Supported Providers:**
+- `chatgpt` (OpenAI ChatGPT)
+- `gemini` (Google Gemini)
+- `kimi` (Moonshot AI)
+- `claude` (Anthropic Claude)
+- `deepseek` (DeepSeek AI)
+
+### 2. Switching the Active Model
+After pairing, update your `.env` file to switch the model used by the Pi Agent:
+```env
+# Switch between paired models
+AC_PI_CODING_AGENT_MODEL=chatgpt:default
+# OR
+AC_PI_CODING_AGENT_MODEL=gemini:default
+# OR
+AC_PI_CODING_AGENT_MODEL=kimi:default
+```
 
 ---
 
@@ -28,7 +37,7 @@ This stack is configured to stay within a **4GB RAM limit**:
 1. **Configure Environment Variables**
    ```bash
    cp .env.example .env
-   # Edit .env with your actual keys and bot token
+   # Edit .env with your bot token and desired model
    ```
 
 2. **Start the Stack**
@@ -36,21 +45,24 @@ This stack is configured to stay within a **4GB RAM limit**:
    docker compose up -d
    ```
 
-3. **Pairing Telegram**
+3. **Pairing Messenger (Telegram)**
    ```bash
    docker exec -it openclaw_gateway openclaw pairing approve telegram <OTP_CODE>
    ```
 
-4. **Pairing ChatGPT (OAuth/Browser Login)**
+4. **Pairing LLM Models**
    ```bash
+   # Pair your ChatGPT account
    docker exec -it openclaw_gateway openclaw device-pair chatgpt
+   
+   # Pair your Gemini account (Optional)
+   docker exec -it openclaw_gateway openclaw device-pair gemini
    ```
-   *Follow the provided link to complete the login.*
 
 ## Model Fallback
-- **Primary**: `chatgpt:default` (Paired ChatGPT account).
+If your primary model (e.g., ChatGPT) hits a rate limit, the agent will automatically switch to the fallback:
 - **Fallback**: `gemini:gemini-1.5-pro` (Configured via `GEMINI_API_KEY`).
 
 ## Troubleshooting
-- **Memory Errors**: If OpenClaw hits OOM during plugin install, ensure the host has enough swap or increase the memory limit in `docker-compose.yml`.
-- **Sandbox Access**: OpenClaw requires access to `/var/run/docker.sock` to spawn sandboxes.
+- **Pairing Issues**: If the pairing link doesn't work, ensure your VPS has stable internet access.
+- **Memory**: 2GB RAM is required for OpenClaw to run browser sessions during pairing.
