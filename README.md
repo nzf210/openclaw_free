@@ -33,7 +33,15 @@ This stack is configured to stay within a **4GB RAM limit** even if the host has
    docker-compose up -d
    ```
 
-3. **Verify Connection**
+3. **Pairing Telegram (via Docker Exec)**
+   If OpenClaw requires manual pairing for your Telegram account (e.g., OTP login or QR code), you need to execute a command inside the container:
+   ```bash
+   docker exec -it openclaw_gateway sh
+   # Jalankan perintah pairing OpenClaw di sini, misalnya:
+   # npm run pair:telegram atau python pair.py
+   ```
+
+4. **Verify Connection**
    You can check the logs of LiteLLM to ensure it's connecting to Gemini correctly:
    ```bash
    docker-compose logs -f litellm
