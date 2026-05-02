@@ -8,11 +8,11 @@ services:
     container_name: oauth_adapter
     restart: always
     environment:
-      - ENABLE_GATEWAY="true"
-      - AUTHORIZATION="${OPENAI_API_KEY}"
-      - ENABLE_LIMIT="true"
-      - SCHEDULED_REFRESH="true"
-      - RANDOM_TOKEN="true"
+      - ENABLE_GATEWAY=true
+      - AUTHORIZATION=${OPENAI_API_KEY}
+      - ENABLE_LIMIT=true
+      - SCHEDULED_REFRESH=true
+      - RANDOM_TOKEN=true
     ports:
       - "8081:5005" # Web UI untuk login akun
     deploy:
