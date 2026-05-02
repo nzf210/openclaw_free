@@ -1,62 +1,6 @@
 services:
   # ----------------------------------------------------
-  # LiteLLM Proxy - Native ChatGPT OAuth Gateway
-  # ----------------------------------------------------
-  litellm:
-    image: ghcr.io/berriai/litellm:main-latest
-    container_name: litellm_proxy
-    restart: always
-    ports:
-      - "4000:4000"
-    volumes:
-      - ./litellm/config.yaml:/app/config.yaml
-      - ./litellm/chatgpt-auth:/app/chatgpt-auth
-    environment:
-      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
-      - LITELLM_SALT_KEY=${LITELLM_SALT_KEY}
-      - DATABASE_URL=${DATABASE_URL}
-      - CHATGPT_TOKEN_DIR=/app/chatgpt-auth
-    command: [ "--config", "/app/config.yaml", "--port", "4000", "--num_workers", "2" ]
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
-  # ----------------------------------------------------
-  # OpenHands Agent - AI Software Engineer
-  # ----------------------------------------------------
-  openhands:
-    image: ghcr.io/all-hands-ai/openhands:main
-    container_name: openhands_agent
-    restart: always
-    ports:
-      - "2999:3000"
-    environment:
-      - WORKSPACE_BASE=${WORKSPACE_BASE:-./workspace}
-      - SANDBOX_RUNTIME_CONTAINER_IMAGE=ghcr.io/all-hands-ai/runtime:main
-      - LOG_ALL_EVENTS=true
-      - LLM_API_KEY=${LITELLM_MASTER_KEY}
-      - LLM_BASE_URL=http://litellm:4000
-      - LLM_MODEL=${LLM_MODEL:-chatgpt/gpt-5.4}
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
-    deploy:
-      resources:
-        limits:
-          memory: 1280M # Dialokasikan sedikit lebih kecil agar muat adapter
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ${WORKSPACE_BASE:-./workspace}:/opt/workspace_base
-      - openhands-state:/.openhands-state
-    depends_on:
-      - litellm
-
-  # ----------------------------------------------------
-  # OpenClaw Gateway - Messenger Integration
+  # OpenClaw Gateway - Messenger Integration + Pi Agent
   # ----------------------------------------------------
   openclaw:
     image: ghcr.io/openclaw/openclaw:latest
@@ -67,16 +11,29 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 2048M
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - OPENHANDS_API_URL=http://openhands:3000
+      - NODE_OPTIONS=--max-old-space-size=1536
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ALLOWED_USER_IDS=${ALLOWED_USER_IDS}
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
       - REDIS_URL=redis://redis:6379
+      # API Keys for Fallback Providers
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Pi Coding Agent Configuration
+      - AC_PI_CODING_AGENT_ENABLED=${AC_PI_CODING_AGENT_ENABLED}
+      - AC_PI_CODING_AGENT_MODEL=${AC_PI_CODING_AGENT_MODEL:-chatgpt:default}
+      - AC_PI_CODING_AGENT_FALLBACK_MODEL=${AC_PI_CODING_AGENT_FALLBACK_MODEL}
+      - AC_PI_CODING_AGENT_SANDBOX_IMAGE=${AC_PI_CODING_AGENT_SANDBOX_IMAGE}
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./workspace:/home/node/.openclaw/workspace
+      - openclaw_data:/home/node/.openclaw
     depends_on:
-      - openhands
       - db
       - redis
 
@@ -105,6 +62,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   # ----------------------------------------------------
   # Redis - Cache and Message Queue
@@ -131,4 +89,4 @@ services:
 volumes:
   pgdata:
   redisdata:
-  openhands-state:
+  openclaw_data:
