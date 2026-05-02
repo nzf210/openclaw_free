@@ -1,12 +1,12 @@
-# AI Software Engineer VPS Stack (LiteLLM + Gemini Edition)
+# AI Software Engineer VPS Stack (LiteLLM + ChatGPT OAuth)
 
 This project provisions an AI agent stack designed to run on a VPS using Docker. 
-It is optimized for complex projects (like Scala) using **Gemini 1.5 Pro** via **LiteLLM**.
+It uses **LiteLLM native ChatGPT OAuth** for GPT access, without a separate reverse-proxy adapter.
 
 ## Prerequisites
 - Docker and Docker Compose installed on your VPS.
 - A GitHub Personal Access Token (PAT).
-- A **Gemini API Key** (Free from [Google AI Studio](https://aistudio.google.com/)).
+- A ChatGPT subscription that includes the GPT models you want to use.
 - A Bot Token from Telegram, Discord, or Slack.
 
 ## Memory Optimization (4GB Cap)
@@ -23,7 +23,7 @@ This stack is configured to stay within a **4GB RAM limit** even if the host has
    Copy the example environment file and fill in your credentials.
    ```bash
    cp .env.example .env
-   # Edit .env with your actual Gemini API Key and Bot Token
+   # Edit .env with your actual keys and bot token
    nano .env
    ```
 
@@ -33,7 +33,13 @@ This stack is configured to stay within a **4GB RAM limit** even if the host has
    docker-compose up -d
    ```
 
-3. **Pairing Telegram (via Docker Exec)**
+3. **Complete LiteLLM ChatGPT Login**
+   The first request to a `chatgpt/...` model will trigger LiteLLM's device-code OAuth flow. Watch the LiteLLM logs, open the verification URL, then enter the code shown there.
+   ```bash
+   docker-compose logs -f litellm
+   ```
+
+4. **Pairing Telegram (via Docker Exec)**
    If OpenClaw requires manual pairing for your Telegram account (e.g., OTP login or QR code), you need to execute a command inside the container:
    ```bash
    docker exec -it openclaw_gateway sh
@@ -41,18 +47,18 @@ This stack is configured to stay within a **4GB RAM limit** even if the host has
    # npm run pair:telegram atau python pair.py
    ```
 
-4. **Verify Connection**
-   You can check the logs of LiteLLM to ensure it's connecting to Gemini correctly:
+5. **Verify Connection**
+   You can check the logs of LiteLLM to ensure the OAuth login succeeded and requests are reaching the ChatGPT backend:
    ```bash
    docker-compose logs -f litellm
    ```
 
-## Why Gemini 1.5 Pro?
-For complex Scala projects, Gemini 1.5 Pro offers:
-- **Massive Context Window**: Up to 2 million tokens, allowing the agent to read your entire codebase at once.
-- **Stability**: Much more reliable than web-scraping alternatives.
-- **Free Tier**: High-quality reasoning available without cost for individual developers.
+## Default Models
+- `chatgpt/gpt-5.4` is the default model for OpenHands.
+- `chatgpt/gpt-5.3-codex` is also registered in LiteLLM if you want a coding-focused alternative.
+- OAuth tokens are stored under `./litellm/chatgpt-auth` so they persist across container restarts.
 
 ## Troubleshooting
 - **Sandbox Performance**: If sbt/JDK is missing in the sandbox, you can ask OpenHands to install it, or we can customize the runtime image in `docker-compose.yml`.
-- **Port Conflict**: OpenClaw runs on port `8080`, and LiteLLM on `4000`.
+- **First Login**: If GPT requests fail before login, trigger a request from OpenHands and keep `docker-compose logs -f litellm` open until the device code appears.
+- **Port Conflict**: OpenClaw runs on port `8080`, OpenHands on `2999`, and LiteLLM on `4000`.

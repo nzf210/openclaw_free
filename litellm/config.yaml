@@ -1,16 +1,15 @@
 model_list:
-  # Rute ke ChatGPT OAuth Adapter lokal
-  - model_name: openai/gpt-4o
+  - model_name: chatgpt/gpt-5.4
+    model_info:
+      mode: responses
     litellm_params:
-      model: openai/gpt-4o
-      api_base: "http://oauth_adapter:8080/v1"
-      api_key: "dummy-key-for-oauth"
-  
-  # Cadangan: Rute ke Gemini (Jika ChatGPT Adapter Down)
-  - model_name: gemini/gemini-1.5-pro
+      model: chatgpt/gpt-5.4
+
+  - model_name: chatgpt/gpt-5.3-codex
+    model_info:
+      mode: responses
     litellm_params:
-      model: gemini/gemini-1.5-pro
-      api_key: os.environ/GEMINI_API_KEY
+      model: chatgpt/gpt-5.3-codex
 
 litellm_settings:
   drop_params: true

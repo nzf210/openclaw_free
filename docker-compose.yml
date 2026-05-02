@@ -1,29 +1,6 @@
 services:
   # ----------------------------------------------------
-  # OAuth Adapter - ChatGPT Web Login to Local API
-  # ----------------------------------------------------
-  oauth:
-    # Menggunakan lanqian528/chat2api sebagai default oauth adapter populer
-    image: lanqian528/chat2api:latest
-    container_name: oauth_adapter
-    restart: always
-    environment:
-      - ENABLE_GATEWAY=true
-      - AUTHORIZATION=${OPENAI_API_KEY}
-      - ENABLE_LIMIT=true
-      - SCHEDULED_REFRESH=true
-      - RANDOM_TOKEN=true
-    ports:
-      - "8081:5005" # Web UI untuk login akun
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-    volumes:
-      - ./oauth_data:/app/data
-
-  # ----------------------------------------------------
-  # LiteLLM Proxy - Unified API Gateway
+  # LiteLLM Proxy - Native ChatGPT OAuth Gateway
   # ----------------------------------------------------
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
@@ -33,12 +10,12 @@ services:
       - "4000:4000"
     volumes:
       - ./litellm/config.yaml:/app/config.yaml
+      - ./litellm/chatgpt-auth:/app/chatgpt-auth
     environment:
-     #- DATABASE_URL1=${DATABASE_URL1}
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
       - LITELLM_SALT_KEY=${LITELLM_SALT_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - CHATGPT_TOKEN_DIR=/app/chatgpt-auth
     command: [ "--config", "/app/config.yaml", "--port", "4000", "--num_workers", "2" ]
     deploy:
       resources:
@@ -49,8 +26,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      oauth:
-        condition: service_started
 
   # ----------------------------------------------------
   # OpenHands Agent - AI Software Engineer
@@ -67,7 +42,7 @@ services:
       - LOG_ALL_EVENTS=true
       - LLM_API_KEY=${LITELLM_MASTER_KEY}
       - LLM_BASE_URL=http://litellm:4000
-      - LLM_MODEL=${LLM_MODEL:-openai/gpt-4o} # Menggunakan OpenAI model dari adapter
+      - LLM_MODEL=${LLM_MODEL:-chatgpt/gpt-5.4}
       - GITHUB_TOKEN=${GITHUB_TOKEN}
     deploy:
       resources:
